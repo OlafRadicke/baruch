@@ -9,4 +9,4 @@ cp ${BASEDIR}/../example/spec-example.json ${BASEDIR}/spec.json
 cd ${BASEDIR}
 go run ${BASEDIR}/../main.go
 
-rm ${BASEDIR}/spec.json
+#rm ${BASEDIR}/spec.json
