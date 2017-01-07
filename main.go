@@ -21,9 +21,11 @@ func main() {
 
 func buildDeb() {
   // fakeroot dpkg-deb --build debian
+    fmt.Printf("\nBuild deb...")
     out, err := exec.Command("dpkg-deb", "--build", "./dist/demo_0.1-2_i386/").Output()
     if err != nil {
         log.Fatal(err)
+  	    fmt.Printf("\n Error build deb: %s\n", err)
     }
     fmt.Printf("The date is %s\n", out)
 }
@@ -37,6 +39,11 @@ func readJson() {
     Urgency string `urgency`
     Date string `date`
     Changes []string `changes`
+  }
+
+  type Files struct {
+    Path string `path`
+    Defattr string `defattr`
   }
 
 	type SpecStruct struct {
@@ -57,7 +64,8 @@ func readJson() {
     Build string `build`
     Install []string `install`
     Clean []string `clean`
-    ChangeLog []ChangeLog
+    Files []Files `files`
+    ChangeLog []ChangeLog `changelog`
 	}
   var specJson = readSpecFile()
 	dec := json.NewDecoder(strings.NewReader( specJson ))
@@ -66,6 +74,7 @@ func readJson() {
 		if err := dec.Decode(&spec); err == io.EOF {
 			break
 		} else if err != nil {
+	    fmt.Printf("Error: %s\n", err)
 			log.Fatal(err)
 		}
     fmt.Printf("install: %s\n", spec.Install[0])

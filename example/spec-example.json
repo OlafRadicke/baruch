@@ -21,8 +21,7 @@
   "clean": ["rm -rf $RPM_BUILD_ROOT"],
   "files": [
     { "path": "/example",
-      "defattr": "(-,root,root,-)",
-      "doc": ""
+      "defattr": "(-,root,root,-)"
     }
   ],
   "changelog": [
