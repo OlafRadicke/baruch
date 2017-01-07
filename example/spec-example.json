@@ -1,0 +1,49 @@
+{
+  "Name": "baruch-example",
+  "Version": "0.0.1",
+  "Release": "1",
+  "Summary": "Only a example",
+  "Group": "system",
+  "License": "LGPL",
+  "URL": "https://github.com/OlafRadicke/baruch",
+  "Source0": "",
+  "BuildRoot": "%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)",
+  "BuildRequires": "dpkg-deb",
+  "Requires": "vim",
+  "description": "A example with a json spec file.",
+  "prep":"",
+  "setup": "-q",
+  "build": "",
+  "install": [
+    "rm -rf $RPM_BUILD_ROOT",
+    "make install DESTDIR=$RPM_BUILD_ROOT"
+  ],
+  "clean": ["rm -rf $RPM_BUILD_ROOT"],
+  "files": [
+    { "path": "/example",
+      "defattr": "(-,root,root,-)",
+      "doc": ""
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1-2",
+      "distribution": "unstable",
+      "urgency": "low",
+      "date": "Thu, 25 Nov 2004 21:16:04 +0100",
+      "changes": [
+        "Added another feature.",
+        "Fixed feature X."
+      ]
+    },
+    {
+      "version": "0.1-1",
+      "distribution": "unstable",
+      "urgency": "low",
+      "date": "Thu, 18 Nov 2004 21:16:04 +0100",
+      "changes": [
+        "First release."
+      ]
+    }
+  ]
+}

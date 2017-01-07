@@ -1,0 +1,12 @@
+#!/bin/bash
+set -x
+set -e
+
+echo $0
+BASEDIR=$(pwd)$(dirname $0 | cut -c 2-)
+
+cp ${BASEDIR}/../example/spec-example.json ${BASEDIR}/spec.json
+cd ${BASEDIR}
+go run ${BASEDIR}/../main.go
+
+rm ${BASEDIR}/spec.json
