@@ -1,6 +1,7 @@
 package main
 
 import (
+    "compress/gzip"
     "encoding/json"
     "fmt"
     "io"
@@ -13,50 +14,16 @@ import (
 
 func main() {
     fmt.Println("Start...")
-    var spec = readJson()
+    var spec = getSpecJson()
     buildDeb(spec)
     fmt.Println("...ready.")
 }
 
-func createDistDir() {
-
-
-}
-
-func getBuildRoot(spec SpecStruct)(buildRoot string){
-    buildRoot = spec.BuildRoot + "/"+ spec.Name + "_" + spec.Version + "-" + spec.Release + "_" + spec.BuildArch
-    return
-}
-
-func writeControleFile(spec SpecStruct){
-//  d1 := []byte("hello\ngo\n")
-    var content = "Package: " + spec.Name + "\n"
-    content += "Version: " + spec.Version + "-" + spec.Release + "\n"
-    content += "Section: " + spec.Group + "\n"
-    content += "Priority: " + spec.Priority + "\n"
-    content += "Architecture: " + spec.BuildArch + "\n"
-    content += "Maintainer: " + spec.Maintainer + "\n"
-    content += "Description: " + spec.Description + "\n"
-    var buildRoot = getBuildRoot(spec)
-    var controlFileName = buildRoot + "/DEBIAN/control"
-
-    err := os.MkdirAll(buildRoot + "/DEBIAN", 0777)
-    if err != nil {
-        fmt.Printf("\nError by creating directory: %s\n", err.Error())
-        log.Fatal(err)
-    }
-    err = ioutil.WriteFile(controlFileName, []byte(content), 0644)
-  //  err = ioutil.WriteFile("/tmp/test.muell", []byte(content), 0644)
-    if err != nil {
-        fmt.Printf("\nError by writting file: %s\n", err.Error())
-        log.Fatal(err)
-    }
-    fmt.Printf("\nWritting  control file in: %s\n", controlFileName)
-}
-
 func buildDeb(spec SpecStruct) {
     fmt.Printf("\nBuild deb [%s]\n", spec.Name)
+    createDebianDir(spec)
     writeControleFile(spec)
+    writeChangeLogFile(spec)
     var buildRoot = getBuildRoot(spec)
     out, err := exec.Command(
       "fakeroot",
@@ -71,10 +38,87 @@ func buildDeb(spec SpecStruct) {
     fmt.Printf("\nDeb build: %s\n", out)
 }
 
+func getBuildRoot(spec SpecStruct)(buildRoot string){
+    buildRoot = spec.BuildRoot + "/"+ spec.Name + "_" + spec.Version + "-" + spec.Release + "_" + spec.BuildArch
+    return
+}
+
+func createDebianDir(spec SpecStruct){
+  var buildRoot = getBuildRoot(spec)
+  err := os.MkdirAll(buildRoot + "/DEBIAN", 0777)
+  if err != nil {
+      fmt.Printf("\nError by creating directory: %s\n", err.Error())
+      log.Fatal(err)
+  }
+}
+
+func writeControleFile(spec SpecStruct){
+    var content = "Package: " + spec.Name + "\n"
+    content += "Version: " + spec.Version + "-" + spec.Release + "\n"
+    content += "Section: " + spec.Group + "\n"
+    content += "Priority: " + spec.Priority + "\n"
+    content += "Architecture: " + spec.BuildArch + "\n"
+    content += "Maintainer: " + spec.Maintainer + "\n"
+    content += "Description: " + spec.Description + "\n"
+    var buildRoot = getBuildRoot(spec)
+    var controlFileName = buildRoot + "/DEBIAN/control"
+    err := ioutil.WriteFile(controlFileName, []byte(content), 0644)
+    if err != nil {
+        fmt.Printf("\nError by writting file: %s\n", err.Error())
+        log.Fatal(err)
+    }
+    fmt.Printf("\nWritting  control file in: %s\n", controlFileName)
+}
+
+func writeChangeLogFile(spec SpecStruct){
+    var content = ""
+    for _,element := range spec.ChangeLog {
+        content += spec.Name + " (" + spec.Version + "-" + spec.Release + ") "
+        content += element.Distribution + "; urgency=" + element.Urgency + "\n\n"
+        for _,listElement := range element.Changes {
+            content += "  * " + listElement + "\n"
+        }
+        content += "\n-- " + element.Author + " " + element.Date + " \n\n"
+    }
+    fmt.Printf("\nChangeLog: %s\n", content)
+    var buildRoot = getBuildRoot(spec)
+
+    err := os.MkdirAll(buildRoot + "/usr/share/doc/" + spec.Name, 0777)
+    if err != nil {
+        fmt.Printf("\nError by creating directory: %s\n", err.Error())
+        log.Fatal(err)
+    }
+
+    var changelogFileName = buildRoot + "/usr/share/doc/"
+    changelogFileName += spec.Name + "/changelog.Debian"
+
+
+    zipFile, err := os.OpenFile(changelogFileName, os.O_WRONLY|os.O_CREATE, 0660)
+  	if err != nil {
+    		log.Printf("Error in Create\n")
+    }
+    w := gzip.NewWriter(zipFile)
+    w.Write([]byte(content))
+    w.Close()
+    zipFile.Close()
+    fmt.Printf("\nWritting  control file in: %s\n", changelogFileName)
+
+    zipFile, err = os.OpenFile(changelogFileName + ".gz", os.O_WRONLY|os.O_CREATE, 0660)
+  	if err != nil {
+    		log.Printf("Error in Create\n")
+    }
+    w = gzip.NewWriter(zipFile)
+    w.Write([]byte(content))
+    w.Close()
+    zipFile.Close()
+    fmt.Printf("\nWritting  control file in: %s\n", changelogFileName)
+}
+
 type ChangeLog struct {
     Version string `version`
     Distribution string `distribution`
     Urgency string `urgency`
+    Author string `author`
     Date string `date`
     Changes []string `changes`
 }
@@ -110,9 +154,9 @@ type SpecStruct struct {
 }
 
 
-func readJson() (spec SpecStruct){
+func getSpecJson() (spec SpecStruct){
 
-  var specJson = readSpecFile()
+  var specJson = getSpecFileConten()
 	dec := json.NewDecoder(strings.NewReader( specJson ))
 		if err := dec.Decode(&spec); err == io.EOF {
 //			break
@@ -123,7 +167,7 @@ func readJson() (spec SpecStruct){
   return
 }
 
-func readSpecFile() (specData string){
+func getSpecFileConten() (specData string){
     file, e := ioutil.ReadFile("./spec.json")
     if e != nil {
         fmt.Printf("File error: %v\n", e)
