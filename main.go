@@ -82,36 +82,28 @@ func writeChangeLogFile(spec SpecStruct){
     }
     fmt.Printf("\nChangeLog: %s\n", content)
     var buildRoot = getBuildRoot(spec)
-
     err := os.MkdirAll(buildRoot + "/usr/share/doc/" + spec.Name, 0777)
     if err != nil {
         fmt.Printf("\nError by creating directory: %s\n", err.Error())
-        log.Fatal(err)
     }
-
     var changelogFileName = buildRoot + "/usr/share/doc/"
     changelogFileName += spec.Name + "/changelog.Debian"
+    createZipFile(content, changelogFileName)
+    createZipFile(content, changelogFileName + ".gz")
+}
 
-
-    zipFile, err := os.OpenFile(changelogFileName, os.O_WRONLY|os.O_CREATE, 0660)
-  	if err != nil {
-    		log.Printf("Error in Create\n")
+func createZipFile(content string, fileName string){
+    zipFile, err := os.OpenFile(fileName,
+        os.O_WRONLY|os.O_CREATE,
+        0660)
+    if err != nil {
+        log.Printf("Error by create zip file\n")
     }
     w := gzip.NewWriter(zipFile)
     w.Write([]byte(content))
     w.Close()
     zipFile.Close()
-    fmt.Printf("\nWritting  control file in: %s\n", changelogFileName)
-
-    zipFile, err = os.OpenFile(changelogFileName + ".gz", os.O_WRONLY|os.O_CREATE, 0660)
-  	if err != nil {
-    		log.Printf("Error in Create\n")
-    }
-    w = gzip.NewWriter(zipFile)
-    w.Write([]byte(content))
-    w.Close()
-    zipFile.Close()
-    fmt.Printf("\nWritting  control file in: %s\n", changelogFileName)
+    fmt.Printf("\nWritting  control file in: %s\n", fileName)
 }
 
 type ChangeLog struct {
