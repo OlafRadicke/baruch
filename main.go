@@ -1,6 +1,7 @@
 package main
 
 import (
+  	"archive/tar"
     "compress/gzip"
     "encoding/json"
     "fmt"
@@ -24,6 +25,7 @@ func buildDeb(spec SpecStruct) {
     createDebianDir(spec)
     writeControleFile(spec)
     writeChangeLogFile(spec)
+    extractSourceTarGz(spec)
     var buildRoot = getBuildRoot(spec)
     out, err := exec.Command(
       "fakeroot",
@@ -106,6 +108,62 @@ func createZipFile(content string, fileName string){
     fmt.Printf("\nWritting  control file in: %s\n", fileName)
 }
 
+func extractSourceTarGz(spec SpecStruct) {
+    fmt.Println("Extract source tar.gz")
+
+    var buildRoot = getBuildRoot(spec)
+    err := os.MkdirAll(buildRoot + "/SOURCE", 0777)
+    if err != nil {
+        fmt.Printf("\nError by creating directory /SOURCE: %s\n", err.Error())
+    }
+    sourceTarGzPath := spec.Source
+  	f, err := os.Open(sourceTarGzPath)
+  	if err != nil {
+    		fmt.Println(err)
+    		os.Exit(1)
+  	}
+  	defer f.Close()
+  	gzf, err := gzip.NewReader(f)
+  	if err != nil {
+    		fmt.Println(err)
+    		os.Exit(1)
+  	}
+
+    tarReader := tar.NewReader(gzf)
+    for true {
+		    header, err := tarReader.Next()
+	      if err == io.EOF {
+            break
+        }
+        if err != nil {
+          	fmt.Println(err)
+          	os.Exit(1)
+        }
+        name := buildRoot + "/SOURCE/" + header.Name
+        switch header.Typeflag {
+        case tar.TypeDir: // = directory
+          	fmt.Println("Directory:", name)
+          	os.Mkdir(name, 0755)
+        case tar.TypeReg: // = regular file
+          	fmt.Println("Regular file:", name)
+          	data := make([]byte, header.Size)
+          	_, err := tarReader.Read(data)
+          	if err != nil {
+      		      panic("Error reading file!")
+          	}
+            ioutil.WriteFile(name, data, 0755)
+        default:
+            fmt.Printf("%s : %c %s %s\n",
+                "Unable to figure out type",
+                header.Typeflag,
+                "in file",
+                name,
+            )
+        }
+    }
+}
+
+
 type ChangeLog struct {
     Version string `version`
     Distribution string `distribution`
@@ -131,7 +189,7 @@ type SpecStruct struct {
     License string
     URL string
     Maintainer string
-    Source0 string
+    Source string
     BuildRoot string
     BuildRequires string
     Requires string

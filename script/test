@@ -5,8 +5,9 @@ set -e
 echo $0
 BASEDIR=$(pwd)$(dirname $0 | cut -c 2-)
 
-cp ${BASEDIR}/../example/spec-example.json ${BASEDIR}/spec.json
-cd ${BASEDIR}
+cp ${BASEDIR}/../example/spec-example.json ${BASEDIR}/../spec.json
+cd ${BASEDIR}/..
+tar -cvzf ./baruch-example.tar.gz ./main.go
 go run ${BASEDIR}/../main.go
 
 #rm ${BASEDIR}/spec.json

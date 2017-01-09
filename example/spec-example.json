@@ -10,7 +10,7 @@
   "License": "LGPL",
   "Maintainer": "john doe <john@doe.org>",
   "URL": "https://github.com/OlafRadicke/baruch",
-  "Source0": "",
+  "Source": "baruch-example.tar.gz",
   "BuildRoot": "./dist",
   "BuildRequires": "dpkg-deb",
   "Requires": "vim",
