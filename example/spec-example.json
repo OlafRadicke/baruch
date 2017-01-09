@@ -11,7 +11,6 @@
   "Maintainer": "john doe <john@doe.org>",
   "URL": "https://github.com/OlafRadicke/baruch",
   "Source": "baruch-example.tar.gz",
-  "BuildRoot": "./dist",
   "BuildRequires": "dpkg-deb",
   "Requires": "vim",
   "description": "A example with a json spec file.",

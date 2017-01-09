@@ -22,16 +22,16 @@ func main() {
 
 func buildDeb(spec SpecStruct) {
     fmt.Printf("\nBuild deb [%s]\n", spec.Name)
+    debPathes := createDebianDir(spec)
     createDebianDir(spec)
-    writeControleFile(spec)
-    writeChangeLogFile(spec)
-    extractSourceTarGz(spec)
-    var buildRoot = getBuildRoot(spec)
+    writeControleFile(spec, debPathes)
+    writeChangeLogFile(spec, debPathes)
+    extractSourceTarGz(spec, debPathes)
     out, err := exec.Command(
       "fakeroot",
       "dpkg-deb",
       "--build",
-      buildRoot).CombinedOutput()
+      debPathes.RootDir).CombinedOutput()
     if err != nil {
         fmt.Printf("\nError build deb: %s\n", err.Error())
         fmt.Printf("\nOut build deb: %s\n", out)
@@ -40,21 +40,37 @@ func buildDeb(spec SpecStruct) {
     fmt.Printf("\nDeb build: %s\n", out)
 }
 
-func getBuildRoot(spec SpecStruct)(buildRoot string){
-    buildRoot = spec.BuildRoot + "/"+ spec.Name + "_" + spec.Version + "-" + spec.Release + "_" + spec.BuildArch
+type DebPathes struct {
+    DebDir string
+    RootDir string
+    ControlDir string
+    SourceDir string
+}
+
+func createDebianDir(spec SpecStruct)(debPathes DebPathes){
+    fmt.Println("HOME:", os.Getenv("HOME"))
+    debPathes.DebDir = os.Getenv("HOME") + "/deb"
+    createDir(debPathes.DebDir)
+    debPathes.RootDir = debPathes.DebDir + "/" + spec.Name + "_" +
+        spec.Version + "-" + spec.Release + "_" + spec.BuildArch
+    createDir(debPathes.RootDir)
+    debPathes.ControlDir = debPathes.RootDir + "/DEBIAN"
+    createDir(debPathes.ControlDir)
+    debPathes.SourceDir = debPathes.RootDir + "/SOURCE"
+    createDir(debPathes.SourceDir)
     return
 }
 
-func createDebianDir(spec SpecStruct){
-  var buildRoot = getBuildRoot(spec)
-  err := os.MkdirAll(buildRoot + "/DEBIAN", 0777)
-  if err != nil {
-      fmt.Printf("\nError by creating directory: %s\n", err.Error())
-      log.Fatal(err)
-  }
+func createDir(name string){
+    err := os.MkdirAll(name, 0777)
+    if err != nil {
+        fmt.Printf("\nError by creating directory %s: %s\n", name, err.Error())
+        log.Fatal(err)
+    }
 }
 
-func writeControleFile(spec SpecStruct){
+
+func writeControleFile(spec SpecStruct, debPathes DebPathes){
     var content = "Package: " + spec.Name + "\n"
     content += "Version: " + spec.Version + "-" + spec.Release + "\n"
     content += "Section: " + spec.Group + "\n"
@@ -62,8 +78,7 @@ func writeControleFile(spec SpecStruct){
     content += "Architecture: " + spec.BuildArch + "\n"
     content += "Maintainer: " + spec.Maintainer + "\n"
     content += "Description: " + spec.Description + "\n"
-    var buildRoot = getBuildRoot(spec)
-    var controlFileName = buildRoot + "/DEBIAN/control"
+    var controlFileName = debPathes.ControlDir + "/control"
     err := ioutil.WriteFile(controlFileName, []byte(content), 0644)
     if err != nil {
         fmt.Printf("\nError by writting file: %s\n", err.Error())
@@ -72,7 +87,7 @@ func writeControleFile(spec SpecStruct){
     fmt.Printf("\nWritting  control file in: %s\n", controlFileName)
 }
 
-func writeChangeLogFile(spec SpecStruct){
+func writeChangeLogFile(spec SpecStruct, debPathes DebPathes){
     var content = ""
     for _,element := range spec.ChangeLog {
         content += spec.Name + " (" + spec.Version + "-" + spec.Release + ") "
@@ -83,13 +98,12 @@ func writeChangeLogFile(spec SpecStruct){
         content += "\n-- " + element.Author + " " + element.Date + " \n\n"
     }
     fmt.Printf("\nChangeLog: %s\n", content)
-    var buildRoot = getBuildRoot(spec)
-    err := os.MkdirAll(buildRoot + "/usr/share/doc/" + spec.Name, 0777)
+    err := os.MkdirAll(debPathes.RootDir + "/usr/share/doc/" + spec.Name, 0777)
     if err != nil {
         fmt.Printf("\nError by creating directory: %s\n", err.Error())
     }
-    var changelogFileName = buildRoot + "/usr/share/doc/"
-    changelogFileName += spec.Name + "/changelog.Debian"
+    var changelogFileName = debPathes.RootDir + "/usr/share/doc/" +
+        spec.Name + "/changelog.Debian"
     createZipFile(content, changelogFileName)
     createZipFile(content, changelogFileName + ".gz")
 }
@@ -108,14 +122,8 @@ func createZipFile(content string, fileName string){
     fmt.Printf("\nWritting  control file in: %s\n", fileName)
 }
 
-func extractSourceTarGz(spec SpecStruct) {
+func extractSourceTarGz(spec SpecStruct, debPathes DebPathes) {
     fmt.Println("Extract source tar.gz")
-
-    var buildRoot = getBuildRoot(spec)
-    err := os.MkdirAll(buildRoot + "/SOURCE", 0777)
-    if err != nil {
-        fmt.Printf("\nError by creating directory /SOURCE: %s\n", err.Error())
-    }
     sourceTarGzPath := spec.Source
   	f, err := os.Open(sourceTarGzPath)
   	if err != nil {
@@ -139,7 +147,7 @@ func extractSourceTarGz(spec SpecStruct) {
           	fmt.Println(err)
           	os.Exit(1)
         }
-        name := buildRoot + "/SOURCE/" + header.Name
+        name := debPathes.SourceDir + header.Name
         switch header.Typeflag {
         case tar.TypeDir: // = directory
           	fmt.Println("Directory:", name)
@@ -190,7 +198,6 @@ type SpecStruct struct {
     URL string
     Maintainer string
     Source string
-    BuildRoot string
     BuildRequires string
     Requires string
     Description  string `description`
