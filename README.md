@@ -19,15 +19,17 @@ Enter
 ./script/test
 ```
 
+It's build a deb of his self.
+
 # Run #
 
-Enter
-
-Create a "secp.json" file and enter...
+Create a "spec.json" file and enter...
 
 ```
 go run main.go
 ```
+
+After this is a directory createt under <home dir>/deb
 
 # Example #
 
